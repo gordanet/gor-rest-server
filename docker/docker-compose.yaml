@@ -1,0 +1,65 @@
+version: "3"
+
+services:
+  gor_explorer:
+    container_name: gor_explorer
+    image: gordanet/gor-explorer:latest
+    restart: unless-stopped
+    environment:
+      API_URI: "http://localhost:8000"
+      API_WS_URI: "ws://localhost:8000"
+    ports:
+      - "8080:8080/tcp"
+
+  gor_rest_server:
+    container_name: gor_rest_server
+    image: gordanet/gor-rest-server:latest
+    restart: unless-stopped
+    environment:
+      GORD_HOST_1: gord:46110
+      SQL_URI: postgresql+asyncpg://postgres:postgres@postgresql:5432/postgres
+    ports:
+      - "8000:8000/tcp"
+    links:
+      - gord
+      - postgresql
+
+  gor_db_filler:
+    container_name: gor_db_filler
+    image: gordanet/gor-db-filler:latest
+    restart: unless-stopped
+    environment:
+      DEBUG: "true"
+      GORD_HOST_1: gord:46110
+      SQL_URI: postgresql://postgres:postgres@postgresql:5432/postgres
+    links:
+      - gord
+      - postgresql
+
+  postgresql:
+    container_name: postgresql
+    image: postgres:14-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432/tcp"
+    volumes:
+      - postgresql:/var/lib/postgresql/data/
+
+  gord:
+    container_name: gord
+    image: gordanet/gord:latest
+    restart: unless-stopped
+    ports:
+      - "46110:46110/tcp"
+      - "46111:46111/tcp"
+    volumes:
+      - gord:/app/data/
+    command: ./gord --utxoindex --connect=mainnet-dnsseed-gord.network
+
+volumes:
+  postgresql:
+  gord:
